@@ -24,7 +24,9 @@ FONT_B = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf"
 SANS = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 GAP_LIMIT, CUT_TO, FPS = 8.0, 2.0, 10
 PIPER = str(Path.home() / ".local/bin/piper")
-VOICE = str(Path.home() / ".local/share/piper-voices/en_US-lessac-medium.onnx")
+# Piper voice en_US-ljspeech-medium: trained on LJ Speech (public domain). See demo/CREDITS.md.
+VOICE = str(Path.home() / ".local/share/piper-voices/en_US-ljspeech-medium.onnx")
+LOUDNORM = "loudnorm=I=-16:TP=-2:LRA=11"
 
 CAPTIONS = {
     0: "Patchbrief: a local OpenMinion agent that drafts patch briefs. It runs locally for $0 and only writes after you approve.",
@@ -198,15 +200,25 @@ def main(cast_path: str, out_dir: str) -> None:
         inputs += ["-i", str(voice_dir / f"cap{k}.wav")]
         filters.append(f"[{i}:a]adelay={int(start * 1000)}:all=1[a{i}]")
     n = len(filters)
-    mix = ";".join(filters) + ";" + "".join(f"[a{i}]" for i in range(n)) + f"amix=inputs={n}:normalize=0,volume=0.6[aout]"
+    mix = ";".join(filters) + ";" + "".join(f"[a{i}]" for i in range(n)) + f"amix=inputs={n}:normalize=0,volume=0.5[aout]"
     voice = out / "voice.wav"
     subprocess.run(["ffmpeg", "-y", "-loglevel", "error", *inputs, "-filter_complex", mix, "-map", "[aout]",
                     "-ar", "44100", str(voice)], check=True)
 
+    # Two-pass EBU R128 loudness normalisation of the voice track (about -16 LUFS, true peak <= -2 dBTP before AAC).
+    probe = subprocess.run(["ffmpeg", "-hide_banner", "-i", str(voice), "-af", f"{LOUDNORM}:print_format=json",
+                            "-f", "null", "-"], check=True, capture_output=True, text=True).stderr
+    m = json.loads(probe[probe.rindex("{"):probe.rindex("}") + 1])
+    voice_norm = out / "voice-norm.wav"
+    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(voice), "-af",
+                    f"{LOUDNORM}:measured_I={m['input_i']}:measured_TP={m['input_tp']}:measured_LRA={m['input_lra']}"
+                    f":measured_thresh={m['input_thresh']}:offset={m['target_offset']}:linear=true",
+                    "-ar", "44100", str(voice_norm)], check=True)
+
     mp4 = out / "patchbrief-demo.mp4"
     subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", str(concat),
-                    "-i", str(voice), "-af", "apad", "-vf", f"fps={FPS},format=yuv420p", "-c:v", "libx264", "-preset", "medium",
-                    "-crf", "23", "-c:a", "aac", "-b:a", "128k", "-t", f"{t_out:.2f}", "-movflags", "+faststart", str(mp4)],
+                    "-i", str(voice_norm), "-af", "apad", "-vf", f"fps={FPS},format=yuv420p", "-c:v", "libx264", "-preset", "medium",
+                    "-crf", "23", "-c:a", "aac", "-b:a", "160k", "-t", f"{t_out:.2f}", "-movflags", "+faststart", str(mp4)],
                    check=True)
     gif = out / "patchbrief-demo.gif"
     subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", str(concat),

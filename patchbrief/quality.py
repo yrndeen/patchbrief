@@ -92,3 +92,31 @@ def check_brief_quality(markdown: str, issue_ids: list[str], source_context: str
     """Warnings for missing issue citations or a blurb that isn't about the real release."""
     warnings = [f"missing issue citation {i}" for i in issue_ids if i not in markdown]
     return warnings + check_blurb(extract_blurb(markdown), source_context)
+
+
+_TEST_SECTION = re.compile(r"(#+\s*Suggested Test Commands\s*\n)(.*?)(?=\n#+\s|\Z)", re.S | re.I)
+_PROSE_SPAN = re.compile(r"^[A-Za-z][A-Za-z ]*$")
+
+
+def source_commands(source_context: str) -> set[str]:
+    """Code spans in the source: the only test commands the release notes actually give."""
+    return {span.strip() for span in re.findall(r"`([^`\n]+)`", source_context)}
+
+
+def unquote_prose_checks(markdown: str, commands: set[str]) -> str:
+    """In Suggested Test Commands, drop backticks around plain-English checks.
+
+    A span of 3+ plain words that the source never wrote as code (e.g. "local SIGTERM soak
+    check") is a manual check, not a command, so it is shown as text.
+    """
+    def fix_span(m: re.Match[str]) -> str:
+        span = m.group(1).strip()
+        if span in commands or not _PROSE_SPAN.match(span) or len(span.split()) < 3:
+            return m.group(0)
+        return span
+
+    m = _TEST_SECTION.search(markdown)
+    if not m:
+        return markdown
+    body = re.sub(r"`([^`\n]+)`", fix_span, m.group(2))
+    return markdown[: m.start(2)] + body + markdown[m.end(2):]

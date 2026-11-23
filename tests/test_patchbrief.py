@@ -9,6 +9,7 @@ import pytest
 
 from patchbrief.agent import PatchbriefRunner
 from patchbrief.memory import load_brief_memory
+from patchbrief.quality import source_commands, unquote_prose_checks
 from patchbrief.security import redact_secrets, resolve_safe_path
 from patchbrief.tools import build_patchbrief_tools
 
@@ -362,3 +363,49 @@ def test_blurb_repair_rejects_a_bad_reply_and_keeps_the_file(monkeypatch, tmp_pa
     assert warnings == ["release blurb is a list, not 1-2 plain sentences"]
     assert detail and "claims an open issue is fixed" in detail
     assert "- Migration? No." in text
+
+
+def test_redaction_keeps_closing_backtick_after_bearer_placeholder() -> None:
+    line = "- #151: Redact `Authorization: Bearer ...` headers in debug logs."
+    out = redact_secrets(line)
+    assert "`Authorization: Bearer [REDACTED_TOKEN]` headers" in out
+    assert out.count("`") == 2
+    real = redact_secrets("`Authorization: Bearer abcdefghijklmnop123456`")
+    assert real == "`Authorization: Bearer [REDACTED_TOKEN]`"
+
+
+def test_unquote_prose_checks_only_touches_plain_english_spans() -> None:
+    source = "Recommended checks: `pytest tests/test_worker.py`, and a local SIGTERM soak check."
+    brief = (
+        "## Risk Notes\n- `keep this code span` as is\n\n"
+        "## Suggested Test Commands\n- `pytest tests/test_worker.py`\n"
+        "- `local SIGTERM soak check`\n- `pytest -k retry`\n\n"
+        "## Release Blurb\nText.\n"
+    )
+    out = unquote_prose_checks(brief, source_commands(source))
+    assert "- local SIGTERM soak check\n" in out
+    assert "- `pytest tests/test_worker.py`" in out
+    assert "- `pytest -k retry`" in out
+    assert "`keep this code span`" in out
+
+
+def test_write_tool_unquotes_prose_checks(tmp_path: Path) -> None:
+    tools = _tool_map(
+        build_patchbrief_tools(
+            output_root=tmp_path,
+            memory_file=tmp_path / "mem.jsonl",
+            session_id="s",
+            model_name="m",
+            write_approved_checker=lambda _p: True,
+            state={},
+            known_commands={"pytest tests/test_cli.py"},
+        )
+    )
+    _call_tool(
+        tools["write_patch_brief"],
+        "b.md",
+        "# Patch Brief: x\n## Suggested Test Commands\n- `pytest tests/test_cli.py`\n- `local SIGTERM soak check`\n",
+    )
+    text = (tmp_path / "b.md").read_text()
+    assert "- `pytest tests/test_cli.py`" in text
+    assert "- local SIGTERM soak check" in text

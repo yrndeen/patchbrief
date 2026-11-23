@@ -20,7 +20,7 @@ Patchbrief is a **local-first release and issue-triage copilot** built directly 
 
 ![Patchbrief terminal demo: deny run, approve run, brief, history](docs/patchbrief-demo.gif)
 
-Real terminal runs from a fresh clone (recorded with asciinema, rendered by `demo/render.py`). Model waits longer than 8 s are cut to 2 s and marked on screen as `[model wait cut: Ns]`; the cut list is in `demo/cuts.json`. The narrated MP4 is hosted separately (link in the submission).
+Real terminal runs from a fresh clone (recorded with asciinema, rendered by `demo/render.py`). Model waits longer than 8 s are cut to 2 s and marked on screen as `[model wait cut: Ns]`; the cut list is in `demo/cuts.json`. The narrated MP4 (77 s) is at https://yrndeen.github.io/patchbrief/patchbrief-demo.mp4; voice and licence credits are in `demo/CREDITS.md`.
 
 ---
 
@@ -111,7 +111,7 @@ patchbrief run fixtures/sample-release \
 patchbrief history --out-dir ./out
 ```
 
-On this box (8 CPU cores, Ollama v0.40.17, `qwen2.5:1.5b-16k`) a deny run takes about 65 s and an approve run about 65-90 s (the upper end when the blurb repair runs). Times vary with machine load.
+On this box (8 CPU cores, Ollama v0.40.17, `qwen2.5:1.5b-16k`) a deny run takes about 45-80 s and an approve run about 80-115 s (the upper end when the blurb repair runs). Times vary with machine load.
 
 Expected approve JSON (abridged): `"ok": true`, `"written_path": ".../out/v0.4.2-brief.md"`, `"quality_warnings": []`, `"stopped_after_tool": true`. Expected deny JSON: `"write_denied": true`, `"written_path": null`, and no `denied-check.md` on disk.
 

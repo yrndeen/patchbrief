@@ -10,6 +10,7 @@ from typing import Callable
 from openminion import tool
 
 from patchbrief.memory import BriefMemoryEntry, append_brief_memory, load_brief_memory, utc_now_iso
+from patchbrief.quality import unquote_prose_checks
 from patchbrief.security import redact_secrets, resolve_safe_path
 
 
@@ -78,6 +79,7 @@ def build_patchbrief_tools(
     write_approved_checker: Callable[[str], bool],
     state: dict[str, object],
     stop_event: threading.Event | None = None,
+    known_commands: set[str] | None = None,
 ) -> list[object]:
     """Create bound OpenMinion @tool callables for one Patchbrief run."""
 
@@ -148,6 +150,8 @@ def build_patchbrief_tools(
             return f"WRITE_DENIED: Operator declined writing patch brief to {dest}."
 
         cleaned = redact_secrets(markdown_content.strip()) + "\n"
+        if known_commands is not None:
+            cleaned = unquote_prose_checks(cleaned, known_commands)
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_text(cleaned, encoding="utf-8")
 

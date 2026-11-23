@@ -15,7 +15,14 @@ from typing import Any, Callable
 from openminion import Agent, AgentRunResult, ProviderError, TurnTimeoutError
 
 from patchbrief.memory import load_brief_memory
-from patchbrief.quality import check_blurb, check_brief_quality, commit_subjects, extract_blurb, replace_blurb
+from patchbrief.quality import (
+    check_blurb,
+    check_brief_quality,
+    commit_subjects,
+    extract_blurb,
+    replace_blurb,
+    source_commands,
+)
 from patchbrief.security import redact_secrets
 from patchbrief.tools import _read_file_or_dir_bundle, build_patchbrief_tools
 
@@ -204,6 +211,10 @@ class PatchbriefRunner:
         local_checker, sdk_approval_callback = self._make_approval_callback(
             approve_write, state, stop_event
         )
+        # Ground the prompt with secret-redacted local source + prior memory so small
+        # local models (e.g. 1.5B–3B) stay factual while larger models can also invoke tools.
+        source_context = redact_secrets(_read_file_or_dir_bundle(resolved_source))
+        state["context_preloaded"] = True
         tools = build_patchbrief_tools(
             output_root=self.output_root,
             memory_file=self.memory_file,
@@ -212,12 +223,8 @@ class PatchbriefRunner:
             write_approved_checker=local_checker,
             state=state,
             stop_event=stop_event,
+            known_commands=source_commands(source_context),
         )
-
-        # Ground the prompt with secret-redacted local source + prior memory so small
-        # local models (e.g. 1.5B–3B) stay factual while larger models can also invoke tools.
-        source_context = redact_secrets(_read_file_or_dir_bundle(resolved_source))
-        state["context_preloaded"] = True
         prior_entries = load_brief_memory(self.memory_file, limit=3)
         state["memory_preloaded"] = True
         prior_block = (
