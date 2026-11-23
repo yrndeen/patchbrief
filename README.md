@@ -111,7 +111,7 @@ patchbrief run fixtures/sample-release \
 patchbrief history --out-dir ./out
 ```
 
-On this box (8 CPU cores, Ollama v0.40.17, `qwen2.5:1.5b-16k`) a deny run takes about 45-80 s and an approve run about 80-115 s (the upper end when the blurb repair runs). Times vary with machine load.
+On this box (8 CPU cores, Ollama v0.40.17, `qwen2.5:1.5b-16k`) a deny run takes about 45-110 s and an approve run about 80-115 s (the upper end when the blurb repair runs). Times vary with machine load.
 
 Expected approve JSON (abridged): `"ok": true`, `"written_path": ".../out/v0.4.2-brief.md"`, `"quality_warnings": []`, `"stopped_after_tool": true`. Expected deny JSON: `"write_denied": true`, `"written_path": null`, and no `denied-check.md` on disk.
 
