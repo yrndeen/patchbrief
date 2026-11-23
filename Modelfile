@@ -1,0 +1,11 @@
+# Patchbrief Ollama model: qwen2.5:1.5b with a 16k context window.
+# OpenMinion 0.1.22 sends ~4k tokens of system + tool schema on the first turn;
+# Ollama's default num_ctx (4096) truncates it, so this Modelfile is required.
+#   ollama pull qwen2.5:1.5b
+#   ollama create qwen2.5:1.5b-16k -f Modelfile
+FROM qwen2.5:1.5b
+PARAMETER num_ctx 16384
+PARAMETER temperature 0.2
+# Cap one reply at 900 tokens (~30-50 s on CPU). A full brief tool call is ~500 tokens;
+# without a cap a 1.5B model can run on past OpenMinion's 60 s provider request limit.
+PARAMETER num_predict 900

@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.openminion/
+om-home/
+out/
+.env
+.env.*
+!.env.example
+*.egg-info/
+out-*/
