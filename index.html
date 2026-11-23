@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Patchbrief — Demo</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #08090d;
+      color: #f5f2eb;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 32px 20px 48px;
+    }
+    h1 {
+      font-weight: 800;
+      letter-spacing: 0.16em;
+      font-size: 22px;
+      margin: 0 0 6px;
+    }
+    p { color: #9aa3b2; margin: 0 0 22px; font-size: 15px; }
+    video {
+      width: min(1280px, 100%);
+      height: auto;
+      background: #000;
+      border-radius: 12px;
+      border: 1px solid #232a38;
+    }
+    a { color: #e8a04a; }
+    .foot { margin-top: 22px; font-size: 14px; color: #9aa3b2; }
+  </style>
+</head>
+<body>
+  <h1>PATCHBRIEF</h1>
+  <p>Cortensor Hackathon #5 — local OpenMinion 0.1.22 + Ollama release &amp; issue-triage agent</p>
+  <video controls preload="metadata" poster="patchbrief-thumb.png" width="1280" height="800">
+    <source src="patchbrief-demo.mp4" type="video/mp4">
+  </video>
+  <p class="foot">
+    <a href="https://github.com/yrndeen/patchbrief">github.com/yrndeen/patchbrief</a>
+    · <a href="patchbrief-demo.mp4">Download the demo</a>
+    · Narration: Piper <code>en_US-ljspeech-medium</code> (LJ Speech, public domain)
+  </p>
+</body>
+</html>
